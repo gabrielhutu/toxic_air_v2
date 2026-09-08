@@ -916,24 +916,6 @@ function actor_in_safe_zone()
     return false
 end
 
--- ### smart terrain check
-function actor_in_safe_zone()
-    local id = smart_terrain.nearest_to_actor_smart.id
-    local smart = id and alife_object(id)
-    local dist = smart_terrain.nearest_to_actor_smart.dist
-
-    if (smart) and (safe_smart_radius[smart:name()]) and (dist <= safe_smart_radius[smart:name()]) then
-        --	printf("id: [ %s ] || name: [ %s ] || dist: [ %s ] || safe: [ true ]", id, smart:name(), round_idp(dist, 2))
-        return true
-    end
-
-    if (toxic_dmg > 0 and is_actor_indoors()) then
-        return true
-    end
-
-    return false
-end
-
 -- ### filters
 function filter_cond_prot()
     filter_air_protection = 0
