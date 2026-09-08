@@ -878,7 +878,7 @@ function is_actor_indoors()
       end
   end
 
-  if ray_hit_counter / #directions >= 0.5 then
+  if ray_hit_counter / #directions >= 0.85 then
       return true -- Actor is indoors
   else
       return false -- Actor is outdoors
@@ -898,7 +898,7 @@ function actor_in_safe_zone()
         return true
     end
 
-    if (is_actor_indoors()) then
+    if (toxic_dmg > 0 and is_actor_indoors()) then
         return true
     end
 
