@@ -847,18 +847,19 @@ local indoor_directions
 
 local function build_directions()
     local d = {}
-    -- Horizontal ring (chest height): the WALLS. 4 cardinal + 4 diagonal.
-    d[#d + 1] = vector( 1, 0,  0)
-    d[#d + 1] = vector(-1, 0,  0)
-    d[#d + 1] = vector( 0, 0,  1)
-    d[#d + 1] = vector( 0, 0, -1)
-    d[#d + 1] = vector( 1, 0,  1):normalize()
-    d[#d + 1] = vector(-1, 0,  1):normalize()
-    d[#d + 1] = vector( 1, 0, -1):normalize()
-    d[#d + 1] = vector(-1, 0, -1):normalize()
-    -- Straight up: the CEILING / roof.
-    d[#d + 1] = vector(0, 1, 0)
-    return d
+    
+    -- dynamic ray directions loop 
+    for i = -1, 1, 0.25 do
+        for j = 0, 1, 0.25 do
+          for k = -1, 1, 0.25 do
+            if not (i == 0 and j == 0 and k == 0) then
+              d[#d + 1] = vector(i, j, k):normalize()
+            end
+        end
+    end 
+  end
+
+  return d
 end
 
 local indoors_cache_t = 0
