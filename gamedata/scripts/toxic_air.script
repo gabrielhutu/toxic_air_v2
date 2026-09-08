@@ -849,19 +849,15 @@ function is_actor_indoors()
   -- Casting rays from the actor's position in multiple directions to see if they hit a solid object.
   local actor_pos = db.actor:position()
   local directions = {
-      vector(1, 0, 0),   -- Right
-      vector(-1, 0, 0),  -- Left
-      vector(0, 1, 0),   -- Forward
-      vector(0, -1, 0),  -- Backward
-      vector(0, 0, 1),   -- Up
-      vector(1, 1, 0):normalize(),   -- Diagonal Forward-Right
-      vector(-1, 1, 0):normalize(),  -- Diagonal Forward-Left
-      vector(1, -1, 0):normalize(),  -- Diagonal Backward-Right
-      vector(-1, -1, 0):normalize(), -- Diagonal Backward-Left
-      vector(1, 0, 1):normalize(),   -- Diagonal Up-Right
-      vector(-1, 0, 1):normalize(),  -- Diagonal Up-Left
-      vector(0, 1, 1):normalize(),   -- Diagonal Up-Forward
-      vector(0, -1, 1):normalize(),  -- Diagonal Up-Backward
+    vector():set(0, 1, 0),                        -- straight up
+    vector():set(0.5, 0.5, 0):normalize(),        -- up-east
+    vector():set(-0.5, 0.5, 0):normalize(),       -- up-west
+    vector():set(0, 0.5, 0.5):normalize(),        -- up-north/south
+    vector():set(0, 0.5, -0.5):normalize(),       -- up-south/north
+    vector():set(0.5, 0.5, 0.5):normalize(),      -- up-diagonal-corner
+    vector():set(-0.5, 0.5, 0.5):normalize(),
+    vector():set(0.5, 0.5, -0.5):normalize(),
+    vector():set(-0.5, 0.5, -0.5):normalize(),
   }
 
   local ray_hit_counter = 0
