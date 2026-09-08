@@ -840,55 +840,79 @@ function send_actor_msg()
     return true
 end
 
-function is_actor_indoors()
+local INDOOR_RAY_RANGE = 6    
+local INDOOR_CONTACT   = 4    
+local INDOOR_HIT_RATIO = 0.66 
+local indoor_directions
 
-  -- Safeguard if the actor object is ever null (shouldn't be, but this is stalker)
+local function build_directions()
+    local d = {}
+    -- Horizontal ring (chest height): the WALLS. 4 cardinal + 4 diagonal.
+    d[#d + 1] = vector( 1, 0,  0)
+    d[#d + 1] = vector(-1, 0,  0)
+    d[#d + 1] = vector( 0, 0,  1)
+    d[#d + 1] = vector( 0, 0, -1)
+    d[#d + 1] = vector( 1, 0,  1):normalize()
+    d[#d + 1] = vector(-1, 0,  1):normalize()
+    d[#d + 1] = vector( 1, 0, -1):normalize()
+    d[#d + 1] = vector(-1, 0, -1):normalize()
+    -- Straight up: the CEILING / roof.
+    d[#d + 1] = vector(0, 1, 0)
+    return d
+end
+
+local indoors_cache_t = 0
+local indoors_cache_v = false
+
+function is_actor_indoors()
   if not db.actor then return false end
 
-  -- Check if the actor is inside any building or solid structure. 
-  -- Casting rays from the actor's position in multiple directions to see if they hit a solid object.
-  local actor_pos = db.actor:position()
-  local directions = {
-      vector(1, 0, 0),   -- Right
-      vector(-1, 0, 0),  -- Left
-      vector(0, 1, 0),   -- Forward
-      vector(0, -1, 0),  -- Backward
-      vector(0, 0, 1),   -- Up
-      vector(1, 1, 0):normalize(),   -- Diagonal Forward-Right
-      vector(-1, 1, 0):normalize(),  -- Diagonal Forward-Left
-      vector(1, -1, 0):normalize(),  -- Diagonal Backward-Right
-      vector(-1, -1, 0):normalize(), -- Diagonal Backward-Left
-      vector(1, 0, 1):normalize(),   -- Diagonal Up-Right
-      vector(-1, 0, 1):normalize(),  -- Diagonal Up-Left
-      vector(0, 1, 1):normalize(),   -- Diagonal Up-Forward
-      vector(0, -1, 1):normalize(),  -- Diagonal Up-Backward
-  }
+    -- Memoize: recompute at most once per second.
+    local tg = time_global()
+    if tg < indoors_cache_t then return indoors_cache_v end
 
-  local ray_hit_counter = 0
+    indoor_directions = indoor_directions or build_directions()
 
-  local indoor_ray = geometry_ray.geometry_ray({
-    ray_range = 400,
-    contact_range = 300,
-    flags = 1 + 2 + 4,
-    ignore_object = db.actor,
-  })
+    -- Save actor's position + 1 m in the Y axis to avoid hitting the ground when raycasting.
+    local actor_pos = vector():set(db.actor:position())
+    actor_pos.y = actor_pos.y + 1.0
 
+    local indoor_ray = geometry_ray.geometry_ray({
+        ray_range     = INDOOR_RAY_RANGE,
+        contact_range = INDOOR_CONTACT,
+        flags         = 1 + 2 + 4 + 8,
+        ignore_object = db.actor,
+    })
 
-  -- For each vector in the directions array, we're checking if a hit has landed on an object and adding that to the hit counter 
-  for _, dir in ipairs(directions) do
-      local hit = indoor_ray:get(vector():set(actor_pos), dir)
-      if hit and hit.in_contact then
-          ray_hit_counter = ray_hit_counter + 1
-      end
-  end
+    local hits = 0
+    for _, dir in ipairs(indoor_directions) do
+        local hit = indoor_ray:get(vector():set(actor_pos), dir)
+        if hit and hit.in_contact then
+            hits = hits + 1
+        end
+    end
 
-  if ray_hit_counter / #directions >= 0.5 then
-      return true -- Actor is indoors
-  else
-      return false -- Actor is outdoors
-  end
+    -- Save the cached next time when this is called in ms 
+    indoors_cache_t = tg + 1000
+    indoors_cache_v = (hits / #indoor_directions) >= INDOOR_HIT_RATIO
+    return indoors_cache_v
+end
 
+-- ### smart terrain check
+function actor_in_safe_zone()
+    local id = smart_terrain.nearest_to_actor_smart.id
+    local smart = id and alife_object(id)
+    local dist = smart_terrain.nearest_to_actor_smart.dist
 
+    if (smart) and (safe_smart_radius[smart:name()]) and (dist <= safe_smart_radius[smart:name()]) then
+        -- printf("id: [ %s ] || name: [ %s ] || dist: [ %s ] || safe: [ true ]", id, smart:name(), round_idp(dist, 2))
+        return true
+    end
+    if (toxic_dmg > 0) and is_actor_indoors() then
+        return true
+    end
+
+    return false
 end
 
 -- ### smart terrain check
