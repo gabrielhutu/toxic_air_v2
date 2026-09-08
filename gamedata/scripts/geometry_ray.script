@@ -1,0 +1,125 @@
+function test(x, mask)
+    return bit_and(x, mask) == mask
+end
+
+
+-- Geometry Ray class by Thial, edited by demonized
+class "geometry_ray"
+
+--[[
+(At least one range parameter should be specified)
+ray_range:
+    Defines the total range of the ray. If you want to attach the ray to
+    a fast moving object it is good to extend the ray so that you can reduce
+    the polling rate by using the get function.
+contact_range:
+    Defines the distance at which the result will report being in contact.
+    You can skip it or set it to a value lower than the ray_range to
+    still be able to get the intersection position from the result while
+    marking the ray as not being in contact yet
+distance_offset:
+    Defines how much the intersection position is offset.
+    You can use both positive and negative values or you can leave it blank.
+flags (bit map = values can be added together for combined effect):
+    0 : None
+    1 : Objects
+    2 : Statics
+    4 : Shapes
+    8 : Obstacles
+]]--
+function geometry_ray:__init(args)
+    local args = args or {}
+    if args.ray_range == nil and args.contact_range == nil then
+        return nil
+    end
+
+    self.ray_range = args.ray_range or args.contact_range
+    self.contact_range = args.contact_range or args.ray_range
+    self.distance_offset = args.distance_offset ~= nil and args.distance_offset or 0
+    self.ray = ray_pick()
+    self.ray:set_flags(args.flags or 2)
+    self.ray:set_range(self.ray_range)
+    self.visualize = args.visualize
+    if args.ignore_object then
+        self.ray:set_ignore_object(args.ignore_object)
+    end
+end
+
+--[[
+position:
+    position from which the ray will start
+direction:
+    direction in which the ray will be fired
+]]--
+function geometry_ray:get(position, direction)    
+    if position == nil or direction == nil then
+        return nil
+    end
+
+    local position = vector():set(position)
+    local direction = vector():set(direction)
+
+    self.ray:set_position(position)
+    self.ray:set_direction(direction)
+    local res = self.ray:query()
+    local distance = res and self.ray:get_distance() or self.ray_range
+    local result = {}
+    if self.visualize then
+        local init_pos = vector():set(position)
+        local end_pos = vector():mad(init_pos, direction, distance)
+        VisualizeRay(init_pos, end_pos)
+    end
+    result.in_contact = distance <= self.contact_range
+    result.position = position:add(direction:mul(distance + self.distance_offset))
+    result.distance = distance
+    result.raw_distance = self.ray:get_distance()
+    result.success = res
+    result.object = self.ray:get_object()
+    result.element = self.ray:get_element()
+    result.result = self.ray:get_result()
+
+    -- Cast to Lua table
+    -- if result.result then
+    --     local r = {}
+    --     r.material_name = result.result.material_name
+    --     r.material_flags = result.result.material_flags
+    --     r.material_phfriction = result.result.material_phfriction
+    --     r.material_phdamping = result.result.material_phdamping
+    --     r.material_phspring = result.result.material_phspring
+    --     r.material_phbounce_start_velocity = result.result.material_phbounce_start_velocity
+    --     r.material_phbouncing = result.result.material_phbouncing
+    --     r.material_flotation_factor = result.result.material_flotation_factor
+    --     r.material_shoot_factor = result.result.material_shoot_factor
+    --     r.material_shoot_factor_mp = result.result.material_shoot_factor_mp
+    --     r.material_bounce_damage_factor = result.result.material_bounce_damage_factor
+    --     r.material_injurious_speed = result.result.material_injurious_speed
+    --     r.material_vis_transparency_factor = result.result.material_vis_transparency_factor
+    --     r.material_snd_occlusion_factor = result.result.material_snd_occlusion_factor
+    --     r.material_density_factor = result.result.material_density_factor
+
+    --     result.result = r
+    -- end
+
+    return result
+end
+
+
+-- Utils
+-- Check if values are similar to a precision
+function similar(float1, float2, epsilon)
+    return math.abs(float1 - float2) <= (epsilon or 0.0001)
+end
+
+function vec_similar(vec1, vec2, epsilon)
+    return similar(vec1.x, vec2.x, epsilon) and similar(vec1.y, vec2.y, epsilon) and similar(vec1.z, vec2.z, epsilon)
+end
+
+-- Linear inter/extrapolation
+function lerp(a, b, f)
+    if a and b and f then
+        return a + f * (b - a)
+    else
+        return a or b or 0
+    end
+end
+
