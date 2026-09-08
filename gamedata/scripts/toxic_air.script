@@ -865,7 +865,7 @@ end
 local indoors_cache_t = 0
 local indoors_cache_v = false
 
-function is_actor_indoors()
+local function is_actor_indoors()
   if not db.actor then return false end
 
     -- Memoize: recompute at most once per second.
