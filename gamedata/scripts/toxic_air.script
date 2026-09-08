@@ -841,6 +841,10 @@ function send_actor_msg()
 end
 
 function is_actor_indoors()
+
+  -- Safeguard if the actor object is ever null (shouldn't be, but this is stalker)
+  if not db.actor then return false end
+
   -- Check if the actor is inside any building or solid structure. 
   -- Casting rays from the actor's position in multiple directions to see if they hit a solid object.
   local actor_pos = db.actor:position()
