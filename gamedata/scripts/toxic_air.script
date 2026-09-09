@@ -841,42 +841,10 @@ function send_actor_msg()
   return true
 end
 
--- Debug: particle line from init to end. Port of DEC's VisualizeRay,
--- renamed so it can never collide with demonized_geometry_ray's copy.
-local DEBUG_VIS_MS = 1500 -- how long lines stay visible
-local DEBUG_VIS_STEP = 25 -- draw every 25th direction (~16 of 404)
-
-local function lerp(a, b, f) return a + f * (b - a) end
-
-local vis_ray_id = 0
-local function visualize_debug_ray(init_pos, end_pos)
-  vis_ray_id = vis_ray_id + 1
-  local id_e = "ta_vis_e_" .. vis_ray_id
-  local id_a = "ta_vis_a_" .. vis_ray_id
-  for i = 0, 20 do -- 20 particles along the line, cheap
-    local t = i / 20
-    local p = particles_object("amik\\hit_fx\\metal\\hit_sparks_glow")
-    p:play_at_pos(vector():set(
-      lerp(init_pos.x, end_pos.x, t),
-      lerp(init_pos.y, end_pos.y, t),
-      lerp(init_pos.z, end_pos.z, t)
-    ))
-    -- stop each particle after DEBUG_VIS_MS so they don't linger forever
-    local pp = p
-    CreateTimeEvent(id_e, id_a .. "_" .. i, DEBUG_VIS_MS / 1000, function()
-      pp:stop_deffered()
-      return true
-    end)
-  end
-end
-
-
-
-
 local INDOOR_RAY_RANGE          = 6
 local INDOOR_CONTACT            = 4
-local INDOOR_HIT_RATIO          = 0.66
 local DIRECTION_COORDINATE_STEP = 0.5
+local INDOOR_HIT_RATIO          = 0.66
 local indoor_directions
 
 local function build_directions()
@@ -920,24 +888,16 @@ local function is_actor_indoors()
   })
 
   local hits = 0
-  local n = #indoor_directions
-  for idx, dir in ipairs(indoor_directions) do
+  for _, dir in ipairs(indoor_directions) do
     local hit = indoor_ray:get(vector():set(actor_pos), dir)
     if hit and hit.in_contact then
       hits = hits + 1
     end
-    if cached_config.debug_mode and (idx % DEBUG_VIS_STEP == 0 or idx == n) then
-      -- hit.position = contact point (short line ends at wall/ceiling)
-      -- miss      = full 6 m line out to open air
-      local end_pos = hit and hit.position
-          or vector():set(actor_pos):add(vector():set(dir):mul(INDOOR_RAY_RANGE))
-      visualize_debug_ray(actor_pos, end_pos)
-    end
   end
   if cached_config.debug_mode then
     printf("[toxic_air] indoors: %d/%d hits (%.0f%%) need %.0f%% -> %s",
-      hits, n, hits / n * 100, INDOOR_HIT_RATIO * 100,
-      (hits / n) >= INDOOR_HIT_RATIO and "SAFE" or "TOXIC")
+      hits, #indoor_directions, hits / #indoor_directions * 100, INDOOR_HIT_RATIO * 100,
+      (hits / #indoor_directions) >= INDOOR_HIT_RATIO and "SAFE" or "TOXIC")
   end
 
   -- Save the cached next time when this is called in ms
@@ -956,7 +916,8 @@ function actor_in_safe_zone()
     -- printf("id: [ %s ] || name: [ %s ] || dist: [ %s ] || safe: [ true ]", id, smart:name(), round_idp(dist, 2))
     return true
   end
-  if (toxic_dmg > 0) and is_actor_indoors() then
+
+  if is_actor_indoors() then
     return true
   end
 
