@@ -100,6 +100,8 @@ local function refresh_config_cache()
   cached_config.destroy_empty_filters_mode = toxic_air_mcm.get_config("destroy_empty_filters_mode")
   cached_config.filter_message_toggle = toxic_air_mcm.get_config("filter_message_toggle")
   cached_config.debug_mode = toxic_air_mcm.get_config("debug_mode")
+  cached_config.ray_range = toxic_air_mcm.get_config("ray_range")
+  cached_config.ray_contact = toxic_air_mcm.get_config("ray_contact")
 end
 
 local oxt_tbl = {
@@ -841,8 +843,8 @@ function send_actor_msg()
   return true
 end
 
-local INDOOR_RAY_RANGE          = 6
-local INDOOR_CONTACT            = 4
+local INDOOR_RAY_RANGE          = cached_config.ray_range or 6
+local INDOOR_CONTACT            = cached_config.ray_contact or 4
 local DIRECTION_COORDINATE_STEP = 0.5
 local INDOOR_HIT_RATIO          = 0.66
 local indoor_directions
@@ -855,7 +857,10 @@ local function build_directions()
     for j = 0, 1, DIRECTION_COORDINATE_STEP do
       for k = -1, 1, DIRECTION_COORDINATE_STEP do
         if not (i == 0 and j == 0 and k == 0) then
-          d[#d + 1] = vector(i, j, k):normalize()
+          d[#d + 1] = vector():set(i, j, k):normalize()
+          if cached_config.debug_mode then
+            printf("[toxic_air] rays: directions vector: %s", vector(i, j, k):normalize())
+          end
         end
       end
     end
@@ -895,7 +900,7 @@ local function is_actor_indoors()
     end
   end
   if cached_config.debug_mode then
-    printf("[toxic_air] indoors: %d/%d hits (%.0f%%) need %.0f%% -> %s",
+    printf("[toxic_air] rays: %d/%d hits (%.0f%%) need %.0f%% -> %s",
       hits, #indoor_directions, hits / #indoor_directions * 100, INDOOR_HIT_RATIO * 100,
       (hits / #indoor_directions) >= INDOOR_HIT_RATIO and "SAFE" or "TOXIC")
   end
