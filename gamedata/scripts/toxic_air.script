@@ -866,6 +866,17 @@ local function build_directions()
     end
   end
 
+
+  -- remove duplicate vectors from the array of direction vectors
+  for i = 0, #d do
+    for j = i + 1, #d do
+      if d[i] and d[j] and d[i]:similar(d[j], 0.01) then
+        table.remove(d, j)
+        j = j - 1
+      end
+    end
+  end
+
   return d
 end
 
@@ -893,6 +904,7 @@ local function is_actor_indoors()
   })
 
   local hits = 0
+  -- For each direction vector in indoor_directions, cast a ray with indoor_ray:get() and check if it hits with indoor_ray:get().in_contact
   for _, dir in ipairs(indoor_directions) do
     local hit = indoor_ray:get(vector():set(actor_pos), dir)
     if hit and hit.in_contact then
@@ -900,9 +912,10 @@ local function is_actor_indoors()
     end
   end
   if cached_config.debug_mode then
-    printf("[toxic_air] rays: %d/%d hits (%.0f%%) need %.0f%% -> %s",
-      hits, #indoor_directions, hits / #indoor_directions * 100, INDOOR_HIT_RATIO * 100,
-      (hits / #indoor_directions) >= INDOOR_HIT_RATIO and "SAFE" or "TOXIC")
+    printf(
+      "[toxic_air] rays: " + hits + "/" + #indoor_directions + " ray hits; " + hits / #indoor_directions * 100 +
+      "%; need " + INDOOR_HIT_RATIO * 100 + "% -> " + (hits / #indoor_directions) >= INDOOR_HIT_RATIO and "SAFE" or
+      "TOXIC")
   end
 
   -- Save the cached next time when this is called in ms
@@ -922,6 +935,8 @@ function actor_in_safe_zone()
     return true
   end
 
+  -- If the player is indoors (inside a building or structure), consider it a safe zone regardless of smart terrain.
+  -- This check should be used as the last check in actor_in_safe_zone() given it's computationally expensive (raycasting in multiple directions).
   if is_actor_indoors() then
     return true
   end
