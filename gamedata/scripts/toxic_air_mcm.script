@@ -46,20 +46,20 @@ local key_to_tab = {
 }
 
 function mcm_path(key)
-	local tab = key_to_tab[key]
-	return tab and ("toxic_air/" .. tab .. "/" .. key) or ("toxic_air/" .. key)
+  local tab = key_to_tab[key]
+  return tab and ("toxic_air/" .. tab .. "/" .. key) or ("toxic_air/" .. key)
 end
 
 function get_config(key)
-	if ui_mcm then return ui_mcm.get(mcm_path(key)) else return defaults[key] end
+  if ui_mcm then return ui_mcm.get(mcm_path(key)) else return defaults[key] end
 end
 
 -- stamp hint so an option keeps its flat string id (ui_mcm_toxic_air_<id>)
 local function L(t)
-	if t.id and t.type ~= "line" and not t.hint then
-		t.hint = "toxic_air_" .. t.id
-	end
-	return t
+  if t.id and t.type ~= "line" and not t.hint then
+    t.hint = "toxic_air_" .. t.id
+  end
+  return t
 end
 
 function on_mcm_load()
@@ -139,189 +139,200 @@ local HUD_MASK_X, HUD_MASK_Y = 50, -8
 
 -- Position + scale for a panel { bg, bar, mask }
 function apply_hud_layout(panel)
-	local s = get_config("hud_scale") or 1
-	panel.bg:SetWndPos(vector2():set(get_config("position_x") or 865, get_config("position_y") or 700))
-	panel.bg:SetWndSize(vector2():set(HUD_BG_W * s, HUD_BG_H * s))
-	if panel.bar then
-		panel.bar:SetWndSize(vector2():set(HUD_BG_W * s, HUD_BG_H * s))
-	end
-	if panel.mask then
-		panel.mask:SetWndPos(vector2():set(HUD_MASK_X * s, HUD_MASK_Y * s))
-		panel.mask:SetWndSize(vector2():set(HUD_MASK_W * s, HUD_MASK_H * s))
-	end
+  local s = get_config("hud_scale") or 1
+  panel.bg:SetWndPos(vector2():set(get_config("position_x") or 865, get_config("position_y") or 700))
+  panel.bg:SetWndSize(vector2():set(HUD_BG_W * s, HUD_BG_H * s))
+  if panel.bar then
+    panel.bar:SetWndSize(vector2():set(HUD_BG_W * s, HUD_BG_H * s))
+  end
+  if panel.mask then
+    panel.mask:SetWndPos(vector2():set(HUD_MASK_X * s, HUD_MASK_Y * s))
+    panel.mask:SetWndSize(vector2():set(HUD_MASK_W * s, HUD_MASK_H * s))
+  end
 end
 
 local function build_hud_panel(owner)
-	local xml = CScriptXmlInit()
-	xml:ParseFile("ui_toxic_air.xml")
-	local bg = xml:InitStatic("bg", owner)
-	local bar = xml:InitProgressBar("bar", bg)
-	local mask = xml:InitStatic("mask", bg)
-	return { xml = xml, bg = bg, bar = bar, mask = mask }
+  local xml = CScriptXmlInit()
+  xml:ParseFile("ui_toxic_air.xml")
+  local bg = xml:InitStatic("bg", owner)
+  local bar = xml:InitProgressBar("bar", bg)
+  local mask = xml:InitStatic("mask", bg)
+  return { xml = xml, bg = bg, bar = bar, mask = mask }
 end
 
 -- only offer the editor while a level is loaded (in game, not main menu)
 function level_present()
-	return level and level.present()
+  return level and level.present()
 end
 
 local function rnd(v, dp)
-	local m = 10 ^ (dp or 2)
-	return math.floor(v * m + 0.5) / m
+  local m = 10 ^ (dp or 2)
+  return math.floor(v * m + 0.5) / m
 end
 
 local commands = {
-	{ key = "position_x", name = "ui_mcm_toxic_air_position_x", min = 0,   max = 1024, step = 1,   dp = 0 },
-	{ key = "position_y", name = "ui_mcm_toxic_air_position_y", min = 0,   max = 768,  step = 1,   dp = 0 },
-	{ key = "hud_scale",  name = "ui_mcm_toxic_air_hud_scale",  min = 0.5, max = 6.0,  step = 0.1, dp = 1 },
+  { key = "position_x", name = "ui_mcm_toxic_air_position_x", min = 0,   max = 1024, step = 1,   dp = 0 },
+  { key = "position_y", name = "ui_mcm_toxic_air_position_y", min = 0,   max = 768,  step = 1,   dp = 0 },
+  { key = "hud_scale",  name = "ui_mcm_toxic_air_hud_scale",  min = 0.5, max = 6.0,  step = 0.1, dp = 1 },
 }
 
 local function cmd_get(c)
-	local v = get_config(c.key)
-	if v ~= nil then return v end
-	return defaults[c.key]
+  local v = get_config(c.key)
+  if v ~= nil then return v end
+  return defaults[c.key]
 end
 
 local function cmd_set(c, val)
-	if ui_mcm then ui_mcm.set(mcm_path(c.key), val) end
-	-- apply live to the real HUD if it is up (a scripted set does not fire on_option_change)
-	if toxic_air and toxic_air.on_option_change then toxic_air.on_option_change() end
+  if ui_mcm then ui_mcm.set(mcm_path(c.key), val) end
+  -- apply live to the real HUD if it is up (a scripted set does not fire on_option_change)
+  if toxic_air and toxic_air.on_option_change then toxic_air.on_option_change() end
 end
 
 local function cmd_label(c, val)
-	if c.dp and c.dp > 0 then
-		return string.format("%." .. c.dp .. "f", val)
-	end
-	return string.format("%d", math.floor(val + 0.5))
+  if c.dp and c.dp > 0 then
+    return string.format("%." .. c.dp .. "f", val)
+  end
+  return string.format("%d", math.floor(val + 0.5))
 end
 
-GUI = nil       -- editor instance
-PREVIEW = nil   -- preview overlay instance
+GUI = nil     -- editor instance
+PREVIEW = nil -- preview overlay instance
 
 -- MCM button functor: close the MCM dialog, then open the editor over gameplay
 function open_live_edit(mcm_self)
-	mcm_self:On_Cancel()
-	start_live_edit()
+  mcm_self:On_Cancel()
+  start_live_edit()
 end
 
 function start_live_edit()
-	exec_console_cmd("main_menu off")
-	if not GUI then GUI = UIToxicAirEdit() end
-	if GUI and not GUI:IsShown() then
-		GUI:ShowDialog(false)   -- false = keep the game HUD visible behind the panel
-		Register_UI("UIToxicAirEdit", "toxic_air_mcm")
-		if not PREVIEW then PREVIEW = UIToxicAirPreview() end
-	end
+  exec_console_cmd("main_menu off")
+  if not GUI then GUI = UIToxicAirEdit() end
+  if GUI and not GUI:IsShown() then
+    GUI:ShowDialog(false) -- false = keep the game HUD visible behind the panel
+    Register_UI("UIToxicAirEdit", "toxic_air_mcm")
+    if not PREVIEW then PREVIEW = UIToxicAirPreview() end
+  end
 end
 
 -- preview overlay: a sample HUD re-laid-out live from the settings
 class "UIToxicAirPreview" (CUIScriptWnd)
-function UIToxicAirPreview:__init() super()
-	self:SetWndRect(Frect():set(0, 0, 1024, 768))
-	self:SetAutoDelete(true)
-	self.panel = build_hud_panel(self)
-	apply_hud_layout(self.panel)
-	self.panel.bar:SetProgressPos(0.6)
-	local hud = get_hud()
-	if hud then hud:AddDialogToRender(self); self._hud = true end
+function UIToxicAirPreview:__init()
+  super()
+  self:SetWndRect(Frect():set(0, 0, 1024, 768))
+  self:SetAutoDelete(true)
+  self.panel = build_hud_panel(self)
+  apply_hud_layout(self.panel)
+  self.panel.bar:SetProgressPos(0.6)
+  local hud = get_hud()
+  if hud then
+    hud:AddDialogToRender(self); self._hud = true
+  end
 end
+
 function UIToxicAirPreview:__finalize() end
+
 function UIToxicAirPreview:Update()
-	CUIScriptWnd.Update(self)
-	apply_hud_layout(self.panel)
-	self.panel.bar:SetProgressPos(0.6)
+  CUIScriptWnd.Update(self)
+  apply_hud_layout(self.panel)
+  self.panel.bar:SetProgressPos(0.6)
 end
+
 function UIToxicAirPreview:Destroy()
-	if self._hud then
-		local hud = get_hud()
-		if hud then hud:RemoveDialogToRender(self) end
-		self._hud = false
-	end
+  if self._hud then
+    local hud = get_hud()
+    if hud then hud:RemoveDialogToRender(self) end
+    self._hud = false
+  end
 end
 
 -- trackbar editor panel (stock options template)
 class "UIToxicAirEdit" (CUIScriptWnd)
-function UIToxicAirEdit:__init() super()
-	self:InitControls()
-	RegisterScriptCallback("actor_on_net_destroy", self)
+function UIToxicAirEdit:__init()
+  super()
+  self:InitControls()
+  RegisterScriptCallback("actor_on_net_destroy", self)
 end
+
 function UIToxicAirEdit:__finalize() end
+
 function UIToxicAirEdit:actor_on_net_destroy()
-	self:Close()
+  self:Close()
 end
 
 function UIToxicAirEdit:InitControls()
-	self:SetWndRect(Frect():set(0, 0, 1024, 768))
-	self:SetAutoDelete(true)
+  self:SetWndRect(Frect():set(0, 0, 1024, 768))
+  self:SetAutoDelete(true)
 
-	self.xml = CScriptXmlInit()
-	local xml = self.xml
-	xml:ParseFile("ui_options.xml")
+  self.xml = CScriptXmlInit()
+  local xml = self.xml
+  xml:ParseFile("ui_options.xml")
 
-	self.dialog = xml:InitStatic("ctrl_lighting", self)
-	self.frame = xml:InitFrame("ctrl_lighting:frame", self.dialog)
-	local cap = xml:InitStatic("ctrl_lighting:cap_main", self.dialog)
-	cap:TextControl():SetText(game.translate_string("st_toxic_air_hud_editor_title"))
-	self.scroll = xml:InitScrollView("ctrl_lighting:scroll", self.dialog)
-	self.scroll:Clear()
+  self.dialog = xml:InitStatic("ctrl_lighting", self)
+  self.frame = xml:InitFrame("ctrl_lighting:frame", self.dialog)
+  local cap = xml:InitStatic("ctrl_lighting:cap_main", self.dialog)
+  cap:TextControl():SetText(game.translate_string("st_toxic_air_hud_editor_title"))
+  self.scroll = xml:InitScrollView("ctrl_lighting:scroll", self.dialog)
+  self.scroll:Clear()
 
-	self.Track = {}
-	self.Value = {}
-	self.Num = {}
-	for i = 1, #commands do
-		local c = commands[i]
-		local st = xml:InitStatic("ctrl_lighting:st", nil)
-		local lab = xml:InitStatic("ctrl_lighting:cap", st)
-		lab:TextControl():SetText(game.translate_string(c.name))
+  self.Track = {}
+  self.Value = {}
+  self.Num = {}
+  for i = 1, #commands do
+    local c = commands[i]
+    local st = xml:InitStatic("ctrl_lighting:st", nil)
+    local lab = xml:InitStatic("ctrl_lighting:cap", st)
+    lab:TextControl():SetText(game.translate_string(c.name))
 
-		local val = cmd_get(c) or 0
-		self.Track[i] = xml:InitTrackBar("ctrl_lighting:track", st)
-		self.Track[i]:SetStep(c.step)
-		self.Track[i]:SetOptFBounds(c.min, c.max)
-		self.Track[i]:SetFValue(val)
-		self.Value[i] = val
-		self.Num[i] = xml:InitTextWnd("ctrl_lighting:num", st)
-		self.Num[i]:SetText(cmd_label(c, rnd(val, c.dp)))
+    local val = cmd_get(c) or 0
+    self.Track[i] = xml:InitTrackBar("ctrl_lighting:track", st)
+    self.Track[i]:SetStep(c.step)
+    self.Track[i]:SetOptFBounds(c.min, c.max)
+    self.Track[i]:SetFValue(val)
+    self.Value[i] = val
+    self.Num[i] = xml:InitTextWnd("ctrl_lighting:num", st)
+    self.Num[i]:SetText(cmd_label(c, rnd(val, c.dp)))
 
-		self.scroll:AddWindow(st, true)
-		st:SetAutoDelete(true)
-	end
+    self.scroll:AddWindow(st, true)
+    st:SetAutoDelete(true)
+  end
 end
 
 function UIToxicAirEdit:Update()
-	CUIScriptWnd.Update(self)
-	-- engine has no trackbar change callback; poll the one under the cursor
-	for i, ctrl in pairs(self.Track) do
-		if ctrl:IsCursorOverWindow() then
-			local c = commands[i]
-			local val = rnd(ctrl:GetFValue(), c.dp)
-			if val ~= self.Value[i] then
-				self.Value[i] = val
-				cmd_set(c, val)
-				self.Num[i]:SetText(cmd_label(c, val))
-				return
-			end
-		end
-	end
+  CUIScriptWnd.Update(self)
+  -- engine has no trackbar change callback; poll the one under the cursor
+  for i, ctrl in pairs(self.Track) do
+    if ctrl:IsCursorOverWindow() then
+      local c = commands[i]
+      local val = rnd(ctrl:GetFValue(), c.dp)
+      if val ~= self.Value[i] then
+        self.Value[i] = val
+        cmd_set(c, val)
+        self.Num[i]:SetText(cmd_label(c, val))
+        return
+      end
+    end
+  end
 end
 
 function UIToxicAirEdit:OnKeyboard(dik, keyboard_action)
-	local res = CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
-	if res == false and keyboard_action == ui_events.WINDOW_KEY_PRESSED then
-		if dik == DIK_keys.DIK_ESCAPE then
-			self:Close()
-		end
-	end
-	return res
+  local res = CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
+  if res == false and keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+    if dik == DIK_keys.DIK_ESCAPE then
+      self:Close()
+    end
+  end
+  return res
 end
 
 function UIToxicAirEdit:Close()
-	UnregisterScriptCallback("actor_on_net_destroy", self)
-	if PREVIEW then PREVIEW:Destroy(); PREVIEW = nil end
-	self:HideDialog()
-	self:Show(false)
-	Unregister_UI("UIToxicAirEdit")
-	-- final apply so the real HUD matches the saved settings
-	if toxic_air and toxic_air.on_option_change then toxic_air.on_option_change() end
-	GUI = nil
+  UnregisterScriptCallback("actor_on_net_destroy", self)
+  if PREVIEW then
+    PREVIEW:Destroy(); PREVIEW = nil
+  end
+  self:HideDialog()
+  self:Show(false)
+  Unregister_UI("UIToxicAirEdit")
+  -- final apply so the real HUD matches the saved settings
+  if toxic_air and toxic_air.on_option_change then toxic_air.on_option_change() end
+  GUI = nil
 end
