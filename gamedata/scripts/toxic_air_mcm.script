@@ -62,11 +62,10 @@ local function L(t)
 end
 
 function on_mcm_load()
-	op = { id = "toxic_air", sh = true, gr = {
-			{ id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_toxic_air_title", size = {512,50}, spacing = 20 },
-			L{ id = "hud_live_edit", type = "button", functor_ui = { open_live_edit }, precondition = { level_present }, hint = "toxic_air_hud_live_edit" },
-
+	op = { id = "toxic_air", gr = {
 			{ id = "hud", sh = true, text = "ui_mcm_menu_toxic_air_hud", gr = {
+				{ id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_toxic_air_title", size = {512,50}, spacing = 20 },
+				L{ id = "hud_live_edit", type = "button", functor_ui = { open_live_edit }, precondition = { level_present }, hint = "toxic_air_hud_live_edit" },
 				L{ id = "enable_hud", type = "check", val = 1, def = true },
 				L{ id = "position_x", type = "track", val = 2, min=0, max=1024, step=1, def = 865 },
 				L{ id = "position_y", type = "track", val = 2, min=0, max=768, step=1, def = 700 },
