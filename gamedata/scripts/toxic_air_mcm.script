@@ -27,6 +27,7 @@ local defaults = {
   ["filter_keybind_modifier"] = 0,
   ["filter_keybind_mode"] = 0,
   ["delete_items"] = false,
+  ["dynamic_covers"] = true,
 }
 
 -- key -> subtab id
@@ -39,6 +40,7 @@ local key_to_tab = {
   mono_sin_exception = "gameplay",
   toxic_damage_mult = "gameplay",
   flow_rate_mult = "gameplay",
+  dynamic_covers = "gameplay",
   tank_sprint_mult = "gameplay",
   filter_animation = "filters",
   filter_message_toggle = "filters",
@@ -106,6 +108,7 @@ function on_mcm_load()
           L { id = "toxic_damage_mult", type = "track", val = 2, min = 0.1, max = 4, step = 0.1, def = 2 },
           L { id = "flow_rate_mult", type = "track", val = 2, min = 0.01, max = 3, step = 0.01, def = 1.5 },
           L { id = "tank_sprint_mult", type = "track", val = 2, min = 1, max = 5, step = 0.05, def = 2 },
+          L { id = "dynamic_covers", type = "check", val = 1, def = true },
         }
       },
 

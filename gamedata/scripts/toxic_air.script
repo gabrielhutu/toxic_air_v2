@@ -100,8 +100,7 @@ local function refresh_config_cache()
   cached_config.destroy_empty_filters_mode = toxic_air_mcm.get_config("destroy_empty_filters_mode")
   cached_config.filter_message_toggle = toxic_air_mcm.get_config("filter_message_toggle")
   cached_config.debug_mode = toxic_air_mcm.get_config("debug_mode")
-  cached_config.ray_range = toxic_air_mcm.get_config("ray_range")
-  cached_config.ray_contact = toxic_air_mcm.get_config("ray_contact")
+  cached_config.dynamic_covers = toxic_air_mcm.get_config("dynamic_covers")
 end
 
 local oxt_tbl = {
@@ -944,7 +943,7 @@ function actor_in_safe_zone()
 
   -- If the player is indoors (inside a building or structure), consider it a safe zone regardless of smart terrain.
   -- This check should be used as the last check in actor_in_safe_zone() given it's computationally expensive (raycasting in multiple directions).
-  if is_actor_indoors() then
+  if cached_config.dynamic_covers and is_actor_indoors() then
     return true
   end
 
