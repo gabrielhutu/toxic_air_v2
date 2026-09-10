@@ -846,7 +846,7 @@ local INDOOR_RAY_RANGE          = 6
 local INDOOR_CONTACT            = 4
 local REFRESH_TIME              = 1500
 local DIRECTION_COORDINATE_STEP = 1
-local INDOOR_HIT_RATIO          = 0.66
+local INDOOR_HIT_RATIO          = 0.55
 local indoor_directions
 
 local function build_directions()
