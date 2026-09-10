@@ -1,7 +1,5 @@
 local defaults = {
   ["debug_mode"] = false,
-  ["ray_range"] = 100,
-  ["ray_contact"] = 80,
   ["mono_sin_exception"] = true,
   ["enable_hud"] = true,
   ["position_x"] = 865,
@@ -62,8 +60,6 @@ local key_to_tab = {
   filter_keybind_mode = "keybind",
   delete_items = "advanced",
   debug_mode = "advanced",
-  ray_range = "advanced",
-  ray_contact = "advanced"
 }
 
 function mcm_path(key)
@@ -178,8 +174,6 @@ function on_mcm_load()
         gr = {
           L { id = "delete_items", type = "check", val = 1, def = false },
           L { id = "debug_mode", type = "check", val = 1, def = false },
-          L { id = "ray_range", type = "track", val = 2, min = 10, max = 200, step = 1, def = 100 },
-          L { id = "ray_contact", type = "track", val = 2, min = 10, max = 200, step = 1, def = 80 },
         }
       },
     }
