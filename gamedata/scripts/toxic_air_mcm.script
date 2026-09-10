@@ -26,13 +26,15 @@ local defaults = {
 	["filter_keybind_modifier"] = 0,
 	["filter_keybind_mode"] = 0,
 	["delete_items"] = false,
+	["debug_mode"] = false,
+	["dynamic_covers"] = true,
 }
 
 -- key -> subtab id
 -- path is "toxic_air/<tab>/<key>"
 local key_to_tab = {
 	enable_hud = "hud", position_x = "hud", position_y = "hud", hud_scale = "hud",
-	mono_sin_exception = "gameplay", toxic_damage_mult = "gameplay", flow_rate_mult = "gameplay", tank_sprint_mult = "gameplay",
+	mono_sin_exception = "gameplay", toxic_damage_mult = "gameplay", flow_rate_mult = "gameplay", tank_sprint_mult = "gameplay", dynamic_covers = "gameplay",
 	filter_animation = "filters", filter_message_toggle = "filters", destroy_empty_filters = "filters",
 	destroy_empty_filters_threshold = "filters", destroy_empty_filters_mode = "filters",
 	toxic_warning_toggle = "warnings", sound_toggle = "warnings", ppe_toggle = "warnings",
@@ -40,7 +42,7 @@ local key_to_tab = {
 	metro_alert_20 = "warnings", metro_alert_15 = "warnings", metro_alert_10 = "warnings", metro_alert_0 = "warnings",
 	trader_items = "trader",
 	filter_keybind = "keybind", filter_keybind_modifier = "keybind", filter_keybind_mode = "keybind",
-	delete_items = "advanced",
+	delete_items = "advanced", debug_mode = "advanced",
 }
 
 function mcm_path(key)
@@ -77,6 +79,7 @@ function on_mcm_load()
 				L{ id = "toxic_damage_mult", type = "track", val = 2, min=0.1, max=4, step=0.1, def = 2 },
 				L{ id = "flow_rate_mult", type = "track", val = 2, min=0.01, max=3, step=0.01, def = 1.5 },
 				L{ id = "tank_sprint_mult", type = "track", val = 2, min=1, max=5, step=0.05, def = 2 },
+				L{ id = "dynamic_covers", type = "check", val = 1, def = true },
 			}},
 
 			{ id = "filters", sh = true, text = "ui_mcm_menu_toxic_air_filters", gr = {
@@ -119,6 +122,7 @@ function on_mcm_load()
 
 			{ id = "advanced", sh = true, text = "ui_mcm_menu_toxic_air_advanced", gr = {
 				L{ id = "delete_items", type = "check", val = 1, def = false },
+				L{ id = "debug_mode", type = "check", val = 1, def = false },
 			}},
 		}
 	}

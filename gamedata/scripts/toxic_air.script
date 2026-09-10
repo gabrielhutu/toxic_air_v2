@@ -99,6 +99,8 @@ local function refresh_config_cache()
     cached_config.destroy_empty_filters_threshold = toxic_air_mcm.get_config("destroy_empty_filters_threshold")
     cached_config.destroy_empty_filters_mode = toxic_air_mcm.get_config("destroy_empty_filters_mode")
     cached_config.filter_message_toggle = toxic_air_mcm.get_config("filter_message_toggle")
+    cached_config.debug_mode = toxic_air_mcm.get_config("debug_mode")
+    cached_config.dynamic_covers = toxic_air_mcm.get_config("dynamic_covers")
 end
 
 local oxt_tbl = {
@@ -537,6 +539,12 @@ function available_equipment(item)
         return true
     end
 
+    -- If the player is indoors (inside a building or structure), consider it a safe zone regardless of smart terrain.
+    -- This check should be used as the last check in actor_in_safe_zone() given it's computationally expensive (raycasting in multiple directions).
+    if cached_config.dynamic_covers and is_actor_indoors() then
+        return true
+    end
+
     return false
 end
 
@@ -838,6 +846,94 @@ function send_actor_msg()
     if not cached_config.toxic_warning_toggle then return true end
     actor_menu.set_msg(1, gc("st_air_is_toxic"), 3)
     return true
+end
+
+local INDOOR_RAY_RANGE          = 6
+local INDOOR_CONTACT            = 4
+local REFRESH_TIME              = 1500
+local DIRECTION_COORDINATE_STEP = 1
+local INDOOR_HIT_RATIO          = 0.55
+local indoor_directions
+
+local function build_directions()
+    local d = {}
+
+    -- dynamic ray directions loop
+    for i = -1, 1, DIRECTION_COORDINATE_STEP do
+        for j = 0, 1, DIRECTION_COORDINATE_STEP do
+            for k = -1, 1, DIRECTION_COORDINATE_STEP do
+                if not (i == 0 and j == 0 and k == 0) then
+                    d[#d + 1] = vector():set(i, j, k):normalize()
+                    if cached_config.debug_mode then
+                        printf("[toxic_air] rays: directions vector: %s", d[#d])
+                    end
+                end
+            end
+        end
+    end
+
+
+    -- remove duplicate vectors from the array of direction vectors
+    for i = 0, #d - 1 do
+        for j = i + 1, #d do
+            if d[i] and d[j] and (d[i].x == d[j].x and d[i].y == d[j].y and d[i].z == d[j].z) then
+                table.remove(d, j)
+                j = j - 1
+            end
+        end
+    end
+
+    if cached_config.debug_mode then
+        for i = 1, #d do
+            printf("[toxic_air] rays: deduped direction vector: %s", d[i])
+        end
+    end
+
+    return d
+end
+
+local indoors_cache_t = 0
+local indoors_cache_v = false
+
+local function is_actor_indoors()
+    if not db.actor then return false end
+
+    -- Memoize: recompute at most once per second.
+    local tg = time_global()
+    if tg < indoors_cache_t then return indoors_cache_v end
+
+    indoor_directions = indoor_directions or build_directions()
+
+    -- Save actor's position + 1 m in the Y axis to avoid hitting the ground when raycasting.
+    local actor_pos = vector():set(db.actor:position())
+    actor_pos.y = actor_pos.y + 1.0
+
+    local indoor_ray = geometry_ray.geometry_ray({
+        ray_range     = INDOOR_RAY_RANGE,
+        contact_range = INDOOR_CONTACT,
+        flags         = 1 + 2 + 4 + 8,
+        ignore_object = db.actor,
+    })
+
+    local hits = 0
+    -- For each direction vector in indoor_directions, cast a ray with indoor_ray:get() and check if it hits with indoor_ray:get().in_contact
+    for _, dir in ipairs(indoor_directions) do
+        local hit = indoor_ray:get(vector():set(actor_pos), dir)
+        if hit and hit.in_contact then
+            hits = hits + 1
+        end
+    end
+    if cached_config.debug_mode then
+        printf(
+            "[toxic_air] rays: " .. hits .. "/" .. #indoor_directions .. " ray hits; " .. hits / #indoor_directions * 100 ..
+            "%; need " .. INDOOR_HIT_RATIO * 100 .. "% -> " .. ((hits / #indoor_directions) >= INDOOR_HIT_RATIO and "SAFE" or
+                "TOXIC"))
+    end
+
+    -- Save the cached next time when this is called in ms
+    indoors_cache_t = tg + REFRESH_TIME
+    indoors_cache_v = (hits / #indoor_directions) >= INDOOR_HIT_RATIO
+    return indoors_cache_v
 end
 
 -- ### smart terrain check
